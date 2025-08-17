@@ -5,7 +5,7 @@ import sys
 
 import pygame
 from pygame import Surface, Rect
-from pygame.font import Font
+# from pygame.font import Font
 
 from code.Const import C_WHITE, WIN_HEIGHT, MENU_OPTION, EVENT_ENEMY, SPAWN_TIME, C_GREEN, C_CYAN, EVENT_TIMEOUT, \
     TIMEOUT_STEP, TIMEOUT_LEVEL
@@ -104,7 +104,7 @@ class Level:
 
     # HUD estilizada com fundo semi-transparente
     def level_text(self, text_size: int, text: str, text_color: tuple, text_pos: tuple):
-        text_font: Font = pygame.font.SysFont(name="Lucida Sans Typewriter", size=text_size)
+        text_font = pygame.font.SysFont(name="Lucida Sans Typewriter", size=text_size)
 
         # Renderiza o texto
         text_surf: Surface = text_font.render(text, True, text_color).convert_alpha()
