@@ -23,14 +23,21 @@ class Level:
         self.name = name
         self.game_mode = game_mode
         self.entity_list: list[Entity] = []
+
+        # Background
         self.entity_list.extend(EntityFactory.get_entity(self.name + 'Bg'))
-        player = EntityFactory.get_entity('Player1')
-        player.score = player_score[0]
-        self.entity_list.append(player)
+
+        # Player1
+        player1 = EntityFactory.get_entity('Player1')
+        player1.score = player_score[0]
+        self.entity_list.append(player1)
+
+        # Player2
         if game_mode in [MENU_OPTION[1], MENU_OPTION[2]]:
-            player = EntityFactory.get_entity('Player2')
-            player.score = player_score[1]
-            self.entity_list.append(player)
+            player2 = EntityFactory.get_entity('Player2')
+            player2.score = player_score[1]
+            self.entity_list.append(player2)
+
         pygame.time.set_timer(EVENT_ENEMY, SPAWN_TIME)
         pygame.time.set_timer(EVENT_TIMEOUT, TIMEOUT_STEP)  # 100ms
 
@@ -41,24 +48,34 @@ class Level:
         clock = pygame.time.Clock()
         while True:
             clock.tick(60)
+
+            # Atualização e desenho de todas as entidades
             for ent in self.entity_list:
-                self.window.blit(source=ent.surf, dest=ent.rect)
+                self.window.blit(ent.surf, ent.rect)
                 ent.move()
                 if isinstance(ent, (Player, Enemy)):
                     shoot = ent.shoot()
                     if shoot is not None:
                         self.entity_list.append(shoot)
+
+                # HUD dos jogadores com fundo semi-transparente
                 if ent.name == 'Player1':
-                    self.level_text(14, f'Player1 - Health: {ent.health} | Score: {ent.score}', C_GREEN, (10, 25))
+                    self.level_text(14, f'Player1 - Health: {ent.health} | Score: {ent.score}', (0, 255, 0), (10, 25))
                 if ent.name == 'Player2':
-                    self.level_text(14, f'Player2 - Health: {ent.health} | Score: {ent.score}', C_CYAN, (10, 45))
+                    self.level_text(14, f'Player2 - Health: {ent.health} | Score: {ent.score}', (0, 255, 255), (10, 45))
+
+            # Eventos do jogo
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+
+                # Spawn de inimigos (usando append)
                 if event.type == EVENT_ENEMY:
                     choice = random.choice(('Enemy1', 'Enemy2'))
                     self.entity_list.append(EntityFactory.get_entity(choice))
+
+                # Timeout do nível
                 if event.type == EVENT_TIMEOUT:
                     self.timeout -= TIMEOUT_STEP
                     if self.timeout == 0:
@@ -69,25 +86,35 @@ class Level:
                                 player_score[1] = ent.score
                         return True
 
-                found_player = False
-                for ent in self.entity_list:
-                    if isinstance(ent, Player):
-                        found_player = True
-
+                # Verifica se ainda há jogadores vivos
+                found_player = any(isinstance(ent, Player) for ent in self.entity_list)
                 if not found_player:
                     return False
 
-            # printed text
+            # Informações de tela
             self.level_text(14, f'{self.name} - Timeout: {self.timeout / 1000:.1f}s', C_WHITE, (10, 5))
             self.level_text(14, f'fps: {clock.get_fps():.0f}', C_WHITE, (10, WIN_HEIGHT - 35))
             self.level_text(14, f'entidades: {len(self.entity_list)}', C_WHITE, (10, WIN_HEIGHT - 20))
-            pygame.display.flip()
-            # Collisions
-            EntityMediator.verify_collision(entity_list=self.entity_list)
-            EntityMediator.verify_health(entity_list=self.entity_list)
 
+            pygame.display.flip()
+
+            # Colisões e verificação de vida
+            EntityMediator.verify_collision(self.entity_list)
+            EntityMediator.verify_health(self.entity_list)
+
+    # HUD estilizada com fundo semi-transparente
     def level_text(self, text_size: int, text: str, text_color: tuple, text_pos: tuple):
         text_font: Font = pygame.font.SysFont(name="Lucida Sans Typewriter", size=text_size)
+
+        # Renderiza o texto
         text_surf: Surface = text_font.render(text, True, text_color).convert_alpha()
         text_rect: Rect = text_surf.get_rect(left=text_pos[0], top=text_pos[1])
-        self.window.blit(source=text_surf, dest=text_rect)
+
+        # Fundo semi-transparente
+        padding = 4  # espaço ao redor do texto
+        bg_surf = pygame.Surface((text_rect.width + padding*2, text_rect.height + padding*2), pygame.SRCALPHA)
+        bg_surf.fill((0, 0, 0, 150))  # preto semi-transparente
+        self.window.blit(bg_surf, (text_rect.left - padding, text_rect.top - padding))
+
+        # Desenha o texto sobre o fundo
+        self.window.blit(text_surf, text_rect)
